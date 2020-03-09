@@ -1,0 +1,74 @@
+import re
+import xml.etree.ElementTree as ET
+# Python 2 :(
+# from urllib import urlopen
+
+# Python 3
+import requests
+import json
+import sys
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
+# xml_url = 'http://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&stationString=@or&hoursBeforeNow=3&mostRecent=true'
+
+#  class for flight_pattern info
+#  just call pass here so we can assign arbitrary fields. This isn't production quality
+class fp():
+    pass
+
+
+xml_url = 'https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&stationString=@OR&hoursBeforeNow=.5'
+# rwrdata = requests.get(f'https://api.weather.gov/products/types/{product}').json()
+
+
+stream = requests.get(f'{xml_url}') # .json()
+
+stream_store = stream.text
+f_object = open('cur_stream.txt', 'w+')
+f_object.write(stream_store)
+obj_read = f_object.read()
+
+tree = ET.parse('cur_stream.txt')
+root = tree.getroot()
+
+
+def format_str(fi):
+    if fi.category == "VFR":
+        print(bcolors.OKGREEN + fi.text + bcolors.ENDC)
+    elif fi.category == "MVFR":
+        print(bcolors.OKBLUE + fi.text + bcolors.ENDC)
+    elif fi.category == "IFR":
+        print(bcolors.WARNING + fi.text + bcolors.ENDC)
+    elif fi.category == "LIFR":
+        print(bcolors.FAIL + fi.text + bcolors.ENDC)
+    else:
+        print(fi.text)
+
+
+for data in root.findall('data'):
+    for metar in data.findall('METAR'):
+        # Pyton 2
+        if metar.find('flight_category') != None:
+            flight_info = fp()
+            flight_info.category = metar.find('flight_category').text
+            flight_info.text = metar.find('raw_text').text
+            format_str(flight_info)
+            # print "%s %s  " % (metar.find('flight_category').text, metar.find('raw_text').text)
+        else:
+            # print "%s  " % (metar.find('raw_text').text)
+            flight_info = fp()
+            flight_info.text = metar.find('raw_text').text
+            flight_info.category = None
+            format_str(flight_info)
+
+        # Python 3
+        # print(metar.find('flight_category').text)
+        # print bcolors.FAIL + flight_info.category + bcolors.ENDC
